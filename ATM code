@@ -1,0 +1,120 @@
+import java.util.Scanner;
+
+/**
+ * ATM.java
+ *
+ * Handles the console-based user interface: menus, prompts, and
+ * input validation. Contains no direct manipulation of account
+ * balance - all financial operations are delegated to BankAccount,
+ * keeping presentation logic separate from business logic.
+ */
+public class ATM {
+    private BankAccount account;
+    private Scanner scanner;
+
+    public ATM(BankAccount account) {
+        this.account = account;
+        this.scanner = new Scanner(System.in);
+    }
+
+    public void start() {
+        System.out.println("=== Welcome to DecodeLabs ATM ===");
+        if (!authenticate()) {
+            System.out.println("Too many failed attempts. Card retained.");
+            return;
+        }
+        runMenu();
+    }
+
+    /**
+     * Prompts for a PIN up to 3 times before locking the user out.
+     */
+    private boolean authenticate() {
+        int attempts = 0;
+        while (attempts < 3) {
+            System.out.print("Enter PIN: ");
+            String pin = scanner.next();
+            if (account.validatePin(pin)) {
+                System.out.println("Authentication successful.\n");
+                return true;
+            }
+            attempts++;
+            System.out.println("Incorrect PIN. Attempts left: " + (3 - attempts));
+        }
+        return false;
+    }
+
+    private void runMenu() {
+        boolean running = true;
+        while (running) {
+            System.out.println("\n1. Check Balance");
+            System.out.println("2. Deposit");
+            System.out.println("3. Withdraw");
+            System.out.println("4. Exit");
+            System.out.print("Choose an option: ");
+
+            // Security gate: reject non-integer menu choices without crashing
+            while (!scanner.hasNextInt()) {
+                System.out.print("Invalid input. Enter a number (1-4): ");
+                scanner.next();
+            }
+            int choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1:
+                    System.out.printf("Current Balance: $%.2f%n", account.checkBalance());
+                    break;
+                case 2:
+                    handleDeposit();
+                    break;
+                case 3:
+                    handleWithdraw();
+                    break;
+                case 4:
+                    System.out.println("Thank you for using DecodeLabs ATM. Goodbye!");
+                    running = false;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please choose 1-4.");
+            }
+        }
+    }
+
+    private void handleDeposit() {
+        System.out.print("Enter amount to deposit: ");
+        double amount = readValidAmount();
+        if (account.deposit(amount)) {
+            System.out.printf("Deposit successful. New balance: $%.2f%n", account.checkBalance());
+        } else {
+            System.out.println("Deposit failed. Amount must be positive.");
+        }
+    }
+
+    private void handleWithdraw() {
+        System.out.print("Enter amount to withdraw: ");
+        double amount = readValidAmount();
+        if (account.withdraw(amount)) {
+            System.out.printf("Withdrawal successful. New balance: $%.2f%n", account.checkBalance());
+        } else {
+            System.out.println("Withdrawal failed. Check amount and available balance.");
+        }
+    }
+
+    /**
+     * Reads a double from input, re-prompting instead of crashing
+     * if the user enters something that isn't a number.
+     */
+    private double readValidAmount() {
+        while (!scanner.hasNextDouble()) {
+            System.out.print("Invalid amount. Enter a numeric value: ");
+            scanner.next();
+        }
+        return scanner.nextDouble();
+    }
+
+    public static void main(String[] args) {
+        BankAccount account = new BankAccount("100234", "1234", 500.00);
+        ATM atm = new ATM(account);
+        atm.start();
+    }
+}
